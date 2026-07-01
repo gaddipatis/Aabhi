@@ -1,6 +1,6 @@
 import unittest
 
-from app import app, sum_integers
+from app import app, multiply_integers, sum_integers
 
 
 class TestSumIntegers(unittest.TestCase):
@@ -17,6 +17,20 @@ class TestSumIntegers(unittest.TestCase):
         self.assertEqual(sum_integers(0, 0), 0)
 
 
+class TestMultiplyIntegers(unittest.TestCase):
+    def test_positive_numbers(self):
+        self.assertEqual(multiply_integers(3, 5), 15)
+
+    def test_negative_numbers(self):
+        self.assertEqual(multiply_integers(-4, -6), 24)
+
+    def test_mixed_signs(self):
+        self.assertEqual(multiply_integers(10, -3), -30)
+
+    def test_zero(self):
+        self.assertEqual(multiply_integers(0, 99), 0)
+
+
 class TestIndexRoute(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
@@ -24,28 +38,46 @@ class TestIndexRoute(unittest.TestCase):
     def test_get_returns_form(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Integer Sum Calculator", response.data)
+        self.assertIn(b"Integer Calculator", response.data)
+        self.assertIn(b"Sum", response.data)
+        self.assertIn(b"Multiply", response.data)
 
-    def test_post_valid_integers(self):
+    def test_post_sum_valid_integers(self):
         response = self.client.post(
             "/",
-            data={"num1": "12", "num2": "30"},
+            data={"operation": "sum", "num1": "12", "num2": "30"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"12 + 30 = 42", response.data)
 
-    def test_post_negative_integers(self):
+    def test_post_sum_negative_integers(self):
         response = self.client.post(
             "/",
-            data={"num1": "-5", "num2": "8"},
+            data={"operation": "sum", "num1": "-5", "num2": "8"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"-5 + 8 = 3", response.data)
 
+    def test_post_multiply_valid_integers(self):
+        response = self.client.post(
+            "/",
+            data={"operation": "multiply", "num1": "6", "num2": "7"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("6 × 7 = 42", response.get_data(as_text=True))
+
+    def test_post_multiply_negative_integers(self):
+        response = self.client.post(
+            "/",
+            data={"operation": "multiply", "num1": "-3", "num2": "4"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("-3 × 4 = -12", response.get_data(as_text=True))
+
     def test_post_invalid_input(self):
         response = self.client.post(
             "/",
-            data={"num1": "abc", "num2": "10"},
+            data={"operation": "sum", "num1": "abc", "num2": "10"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Please enter valid integers in both fields.", response.data)
@@ -53,7 +85,7 @@ class TestIndexRoute(unittest.TestCase):
     def test_post_empty_fields(self):
         response = self.client.post(
             "/",
-            data={"num1": "", "num2": "10"},
+            data={"operation": "multiply", "num1": "", "num2": "10"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Please enter valid integers in both fields.", response.data)
